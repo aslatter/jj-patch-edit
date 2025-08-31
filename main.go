@@ -1,158 +1,121 @@
 package main
 
 import (
+	"bufio"
 	"errors"
 	"fmt"
-	"io/fs"
+	"io"
 	"iter"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"slices"
 )
 
 func main() {
-	//fmt.Printf("%+v\n", os.Args)
+	if err := mainErr(); err != nil {
+		fmt.Fprintln(os.Stderr, "error: ", err)
+		os.Exit(1)
+	}
+}
+
+func mainErr() error {
 
 	var iterErr error
-	for diffFile := range walkDirPair(os.Args[1], os.Args[2], &iterErr) {
-		fmt.Printf("%+v\n", diffFile)
+
+	for line := range diffLines(os.Args[1], os.Args[2], &iterErr) {
+		fmt.Println(string(line))
 	}
 	if iterErr != nil {
-		fmt.Fprintln(os.Stderr, "error: ", iterErr)
+		return iterErr
 	}
 
 	fmt.Println("Press enter to continue")
 	_, _ = fmt.Scanln()
 
 	// until we know what we're doing, exit with failure
-	os.Exit(1)
+	return errors.New("unimplemented")
 }
 
-type diffFile struct {
-	relPath string
-	left    string
-	right   string
-}
+func diffLines(leftPath string, rightPath string, outErr *error) iter.Seq[[]byte] {
+	return func(yield func([]byte) bool) {
 
-// walkDirPair iterates over two directories in lock-step. A 'diffFile' is
-// returned for each unique relative path between the two folders.
-func walkDirPair(left string, right string, outErr *error) iter.Seq[diffFile] {
-	return func(yield func(diffFile) bool) {
-		var leftErr error
-		var rightErr error
+		wd, leftPath, rightPath := getFolders(leftPath, rightPath)
 
-		leftNext, leftStop := iter.Pull(walkDir(left, &leftErr))
-		defer leftStop()
+		cmd := exec.Command("diff",
+			"-N",
+			"-r",
+			"-u",
+			"--",
+			leftPath,
+			rightPath,
+		)
+		cmd.Dir = wd
 
-		rightNext, rightStop := iter.Pull(walkDir(right, &rightErr))
-		defer rightStop()
-
-		var left walkResult
-		var leftOkay bool
-
-		var right walkResult
-		var rightOkay bool
-
-		for {
-			switch {
-			case left.relPath == right.relPath:
-				{
-					// advance both
-					left, leftOkay = leftNext()
-					right, rightOkay = rightNext()
-				}
-			case left.relPath > right.relPath || !leftOkay:
-				right, rightOkay = rightNext()
-
-			case left.relPath < right.relPath || !rightOkay:
-				left, leftOkay = leftNext()
-			}
-
-			if leftErr != nil {
-				outErr = &leftErr
-				return
-			}
-			if rightErr != nil {
-				outErr = &rightErr
-				return
-			}
-
-			if !leftOkay && !rightOkay {
-				return
-			}
-
-			if !leftOkay || right.relPath < left.relPath {
-				if !yield(diffFile{
-					relPath: right.relPath,
-					left:    "",
-					right:   right.absPath,
-				}) {
-					return
-				}
-
-			}
-			if !rightOkay || right.relPath > left.relPath {
-				if !yield(diffFile{
-					relPath: left.relPath,
-					left:    left.absPath,
-					right:   "",
-				}) {
-					return
-				}
-			}
-
-			if left.relPath == right.relPath {
-				if !yield(diffFile{
-					relPath: left.relPath,
-					left:    left.absPath,
-					right:   right.absPath,
-				}) {
-					return
-				}
-			}
-		}
-	}
-}
-
-type walkResult struct {
-	relPath string
-	absPath string
-}
-
-// walkDir iterates over files in a folder, recursively, returning
-// both the relative-path and absolute path. walkDir only returns regular
-// files.
-func walkDir(dir string, outErr *error) iter.Seq[walkResult] {
-	stopErr := errors.New("stop")
-
-	return func(yield func(walkResult) bool) {
-		err := filepath.WalkDir(dir, func(path string, d fs.DirEntry, err error) error {
-			// ??
-			if err != nil {
-				return err
-			}
-
-			relPath, err := filepath.Rel(dir, path)
-			if err != nil {
-				return err
-			}
-			if !d.Type().IsRegular() {
-				return nil
-			}
-
-			if !yield(walkResult{
-				relPath: relPath,
-				absPath: path,
-			}) {
-				return stopErr
-			}
-
-			return nil
-		})
-		if err == stopErr {
-			err = nil
-		}
+		errReader, err := cmd.StderrPipe()
 		if err != nil {
+			*outErr = fmt.Errorf("setting up error-output pipe: %s", err)
+			return
+		}
+		outReader, err := cmd.StdoutPipe()
+		if err != nil {
+			*outErr = fmt.Errorf("setting up output pipe: %s", err)
+			return
+		}
+
+		err = cmd.Start()
+		if err != nil {
+			*outErr = fmt.Errorf("starting diff subprocess: %s", err)
+			return
+		}
+
+		defer func() {
+			err := cmd.Wait()
+			if *outErr == nil && err != nil {
+				*outErr = err
+			}
+		}()
+
+		defer func() {
+			if *outErr != nil {
+				errBytes, err := io.ReadAll(errReader)
+				if err != nil {
+					*outErr = fmt.Errorf("reading error-output from diff: %s", err)
+					return
+				}
+				if len(errBytes) != 0 {
+					*outErr = errors.New(string(errBytes))
+				}
+			}
+		}()
+
+		s := bufio.NewScanner(outReader)
+		for s.Scan() {
+			if !yield(slices.Clone(s.Bytes())) {
+				return
+			}
+		}
+
+		if err = s.Err(); err != nil {
 			*outErr = err
 		}
 	}
+}
+
+func getFolders(left, right string) (wd string, newLeft string, newRight string) {
+	var err error
+
+	left = filepath.Clean(left)
+	right = filepath.Clean(right)
+
+	wd = filepath.Dir(left)
+	newLeft, err = filepath.Rel(wd, left)
+	if err != nil {
+		return "", left, right
+	}
+	newRight, err = filepath.Rel(wd, right)
+	if err != nil {
+		return "", left, right
+	}
+	return wd, newLeft, newRight
 }
