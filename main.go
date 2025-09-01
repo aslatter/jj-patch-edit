@@ -71,6 +71,15 @@ func diffLines(leftPath string, rightPath string, outErr *error) iter.Seq[[]byte
 
 		defer func() {
 			err := cmd.Wait()
+
+			// ignore non-zero exit-code from diff
+			var exitErr *exec.ExitError
+			if errors.As(err, &exitErr) {
+				if exitErr.ExitCode() > 0 {
+					err = nil
+				}
+			}
+
 			if *outErr == nil && err != nil {
 				*outErr = err
 			}
