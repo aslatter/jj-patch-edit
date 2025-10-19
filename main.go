@@ -26,18 +26,16 @@ func mainErr() error {
 		// todo - make better
 		return !bytes.Contains(f, []byte("JJ-INSTRUCTIONS"))
 	})
-	for range promptUser(tokens, &promptError) {
-		// noop
-	}
+	tokens = promptUser(tokens, &promptError)
+	tokens = invertDiff(tokens)
 
-	err := errors.Join(iterErr, promptError)
+	applyErr := apply(os.Args[2], tokens)
+	// applyErr := fakeApply(tokens)
+
+	err := errors.Join(iterErr, promptError, applyErr)
 	if err != nil {
 		return err
 	}
 
-	fmt.Println("Press enter to continue")
-	_, _ = fmt.Scanln()
-
-	// until we know what we're doing, exit with failure
-	return errors.New("unimplemented")
+	return nil
 }
