@@ -17,10 +17,11 @@ func diffLines(leftPath string, rightPath string, outErr *error) iter.Seq[[]byte
 
 		wd, leftPath, rightPath := getFolders(leftPath, rightPath)
 
-		cmd := exec.Command("diff",
-			"-N", // treat absent files as empty
-			"-r", // recursively compare any subdirectories found
-			"-u", // unified diff
+		cmd := exec.Command("git",
+			"diff",
+			"--no-index",
+			"--diff-algorithm=patience",
+			"--no-prefix",
 			"--",
 			leftPath,
 			rightPath,
