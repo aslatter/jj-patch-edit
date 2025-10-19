@@ -16,25 +16,18 @@ func main() {
 func mainErr() error {
 
 	var iterErr error
+	var promptError error
 
 	lines := diffLines(os.Args[1], os.Args[2], &iterErr)
+
 	tokens := tokenize(lines)
-
-	for t := range tokens {
-		for _, line := range t.body {
-			fmt.Println(string(line))
-		}
-
-		if t.kind == tokenKindFile {
-			// TODO - track current file header? or current patch?
-			continue
-		}
-		fmt.Println("\nInclude change? ")
-		_, _ = fmt.Scanln()
-		fmt.Println()
+	for range promptUser(tokens, &promptError) {
+		// noop
 	}
-	if iterErr != nil {
-		return iterErr
+
+	err := errors.Join(iterErr, promptError)
+	if err != nil {
+		return err
 	}
 
 	fmt.Println("Press enter to continue")
