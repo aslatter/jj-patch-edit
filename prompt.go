@@ -20,9 +20,8 @@ func promptUser(changes iter.Seq[token], outErr *error) iter.Seq[token] {
 				}
 				continue
 			}
-			for _, line := range t.body {
-				fmt.Println(string(line))
-			}
+
+			printDiff(t)
 
 			if t.kind == tokenKindFile {
 				currentFile = t
