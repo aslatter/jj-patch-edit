@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"os"
@@ -21,6 +22,10 @@ func mainErr() error {
 	lines := diffLines(os.Args[1], os.Args[2], &iterErr)
 
 	tokens := tokenize(lines)
+	tokens = filterFile(tokens, func(f []byte) bool {
+		// todo - make better
+		return !bytes.Contains(f, []byte("JJ-INSTRUCTIONS"))
+	})
 	for range promptUser(tokens, &promptError) {
 		// noop
 	}
