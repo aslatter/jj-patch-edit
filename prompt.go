@@ -31,7 +31,7 @@ func promptUser(changes iter.Seq[token], outErr *error) iter.Seq[token] {
 
 		promptLoop:
 			for {
-				fmt.Println("\nInclude change? ")
+				fmt.Print("\nInclude change? [y, n, a, q] ")
 
 				var includeStr string
 				_, _ = fmt.Scanln(&includeStr)
