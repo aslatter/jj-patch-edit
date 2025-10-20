@@ -1,7 +1,10 @@
 package main
 
 import (
+	"bytes"
+	"errors"
 	"fmt"
+	"io"
 	"iter"
 	"os"
 	"os/exec"
@@ -49,4 +52,16 @@ func apply(rightPath string, tokens iter.Seq[token]) (retErr error) {
 	err = wg.Wait()
 
 	return err
+}
+
+func fakeApply(tokens iter.Seq[token]) (retErr error) {
+	var buff bytes.Buffer
+	for t := range tokens {
+		for _, ln := range t.body {
+			fmt.Fprintln(&buff, string(ln))
+		}
+	}
+	fmt.Println("-- COLLECTED PATCH --")
+	io.Copy(os.Stdout, &buff)
+	return errors.New("fake apply - not applying")
 }
