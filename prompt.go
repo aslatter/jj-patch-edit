@@ -31,7 +31,7 @@ func promptUser(changes iter.Seq[token], outErr *error) iter.Seq[token] {
 
 		promptLoop:
 			for {
-				fmt.Print("\nInclude change? [y, n, a, q] ")
+				fmt.Print("\nInclude change? [y, n, a, q, ?] ")
 
 				var includeStr string
 				_, _ = fmt.Scanln(&includeStr)
@@ -75,6 +75,9 @@ func promptUser(changes iter.Seq[token], outErr *error) iter.Seq[token] {
 				case "a", "abort":
 					*outErr = fmt.Errorf("aborted")
 					return
+				case "?":
+					printHelp()
+					continue promptLoop
 				default:
 					fmt.Println("unknown command")
 					continue promptLoop
@@ -82,4 +85,16 @@ func promptUser(changes iter.Seq[token], outErr *error) iter.Seq[token] {
 			}
 		}
 	}
+}
+
+func printHelp() {
+	fmt.Println(`Select if this change should be included.
+
+ y - include this change
+ n - do not include this change
+ q - do not include any remaining changes
+ a - abort this operation as a whole
+ ? - print this help message`)
+
+	fmt.Println()
 }
