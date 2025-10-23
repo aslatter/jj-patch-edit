@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bytes"
 	"errors"
 	"flag"
 	"fmt"
@@ -41,10 +40,6 @@ func mainErr() error {
 	lines := diffLines(leftFolderName, rightFolderName, &iterErr)
 
 	tokens := tokenize(lines)
-	tokens = filterFile(tokens, func(f []byte) bool {
-		// todo - make better
-		return !bytes.Contains(f, []byte("JJ-INSTRUCTIONS"))
-	})
 	files := parse(tokens, &parseErr)
 	files = promptUser(files, &promptError)
 	files = filterSelectedHunks(files)
