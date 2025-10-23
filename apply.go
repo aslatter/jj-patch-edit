@@ -15,6 +15,7 @@ import (
 func apply(rightPath string, files iter.Seq[*file]) (retErr error) {
 	cmd := exec.Command("git",
 		"apply",
+		"--allow-empty",
 		"--",
 	)
 	cmd.Dir = rightPath
