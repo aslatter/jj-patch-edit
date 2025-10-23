@@ -6,11 +6,18 @@ import (
 	"strings"
 )
 
-func promptUser(files iter.Seq[*file], outErr *error) iter.Seq[*file] {
+func promptUser(files iter.Seq[*file]) iter.Seq[*file] {
 	return func(yield func(*file) bool) {
 
-	fileLoop:
+		var didQuit bool
+
 		for f := range files {
+			if didQuit {
+				if !yield(f) {
+					return
+				}
+				continue
+			}
 			printFileHeader(f)
 
 		hunkLoop:
@@ -21,34 +28,41 @@ func promptUser(files iter.Seq[*file], outErr *error) iter.Seq[*file] {
 
 			promptLoop:
 				for {
-					fmt.Print("\nInclude change? [y, n, a, q, ?] ")
+					fmt.Print("\nInclude change? [y, n, a, d, q, ?] ")
 
 					var includeStr string
 					_, _ = fmt.Scanln(&includeStr)
 					includeStr = strings.ToLower(includeStr)
 
 					switch includeStr {
-					case "y", "yes":
+					case "y":
 						h.selected = true
-						continue hunkLoop
+						break promptLoop
 
-					case "n", "no":
-						continue hunkLoop
+					case "n":
+						break promptLoop
 
 					case "q", "quit":
-						continue fileLoop
+						// quiting is hard, because we need to include
+						// all proposed diffs in the output for later
+						// processing.
+						didQuit = true
+						break hunkLoop
 
-					case "a", "abort":
-						*outErr = fmt.Errorf("aborted")
-						return
+					case "a":
+						for j := i; j < len(f.hunks); j++ {
+							f.hunks[j].selected = true
+						}
+						break hunkLoop
+
+					case "d":
+						break hunkLoop
 
 					case "?":
 						printHelp()
-						continue promptLoop
 
 					default:
 						fmt.Println("unknown command")
-						continue promptLoop
 					}
 				}
 			}
@@ -66,7 +80,8 @@ func printHelp() {
  y - include this change
  n - do not include this change
  q - do not include any remaining changes
- a - abort this operation as a whole
+ a - include this change and all remaining changes in this file
+ d - do not include this change or any remaining changes in this file
  ? - print this help message`)
 
 	fmt.Println()

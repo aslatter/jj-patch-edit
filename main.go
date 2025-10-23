@@ -35,13 +35,12 @@ func mainErr() error {
 
 	var iterErr error
 	var parseErr error
-	var promptError error
 
 	lines := diffLines(leftFolderName, rightFolderName, &iterErr)
 
 	tokens := tokenize(lines)
 	files := parse(tokens, &parseErr)
-	files = promptUser(files, &promptError)
+	files = promptUser(files)
 	files = filterSelectedHunks(files)
 	files = invertDiff(files)
 
@@ -52,7 +51,7 @@ func mainErr() error {
 		applyErr = fakeApply(files)
 	}
 
-	err := errors.Join(iterErr, parseErr, promptError, applyErr)
+	err := errors.Join(iterErr, parseErr, applyErr)
 	if err != nil {
 		return err
 	}
