@@ -22,6 +22,8 @@ func diffLines(leftPath string, rightPath string, outErr *error) iter.Seq[[]byte
 			"--no-index",
 			"--diff-algorithm=patience",
 			"--no-prefix",
+			"--no-renames",  // our custom processing doesn't handle this
+			"--no-ext-diff", // we parse the diff, so we don't want arbitrary overrides to its format
 			"--",
 			leftPath,
 			rightPath,
