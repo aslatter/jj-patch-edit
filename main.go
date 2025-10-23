@@ -35,6 +35,7 @@ func mainErr() error {
 	rightFolderName := args[1]
 
 	var iterErr error
+	var parseErr error
 	var promptError error
 
 	lines := diffLines(leftFolderName, rightFolderName, &iterErr)
@@ -44,17 +45,19 @@ func mainErr() error {
 		// todo - make better
 		return !bytes.Contains(f, []byte("JJ-INSTRUCTIONS"))
 	})
-	tokens = promptUser(tokens, &promptError)
-	tokens = invertDiff(tokens)
+	files := parse(tokens, &parseErr)
+	files = promptUser(files, &promptError)
+	files = filterSelectedHunks(files)
+	files = invertDiff(files)
 
 	var applyErr error
 	if !fake {
-		applyErr = apply(rightFolderName, tokens)
+		applyErr = apply(rightFolderName, files)
 	} else {
-		applyErr = fakeApply(tokens)
+		applyErr = fakeApply(files)
 	}
 
-	err := errors.Join(iterErr, promptError, applyErr)
+	err := errors.Join(iterErr, parseErr, promptError, applyErr)
 	if err != nil {
 		return err
 	}

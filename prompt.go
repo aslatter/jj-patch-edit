@@ -6,82 +6,55 @@ import (
 	"strings"
 )
 
-func promptUser(changes iter.Seq[token], outErr *error) iter.Seq[token] {
-	return func(yield func(token) bool) {
-		var currentFile token
-		var emittedCurrentFile bool
-		var didQuit bool
+func promptUser(files iter.Seq[*file], outErr *error) iter.Seq[*file] {
+	return func(yield func(*file) bool) {
 
-	changesLoop:
-		for t := range changes {
-			if didQuit {
-				if !yield(t) {
-					return
+	fileLoop:
+		for f := range files {
+			printFileHeader(f)
+
+		hunkLoop:
+			for i := range f.hunks {
+				h := &f.hunks[i]
+
+				printHunk(h)
+
+			promptLoop:
+				for {
+					fmt.Print("\nInclude change? [y, n, a, q, ?] ")
+
+					var includeStr string
+					_, _ = fmt.Scanln(&includeStr)
+					includeStr = strings.ToLower(includeStr)
+
+					switch includeStr {
+					case "y", "yes":
+						h.selected = true
+						continue hunkLoop
+
+					case "n", "no":
+						continue hunkLoop
+
+					case "q", "quit":
+						continue fileLoop
+
+					case "a", "abort":
+						*outErr = fmt.Errorf("aborted")
+						return
+
+					case "?":
+						printHelp()
+						continue promptLoop
+
+					default:
+						fmt.Println("unknown command")
+						continue promptLoop
+					}
 				}
-				continue
 			}
 
-			printDiff(t)
-
-			if t.kind == tokenKindFile {
-				currentFile = t
-				emittedCurrentFile = false
-				continue
-			}
-
-		promptLoop:
-			for {
-				fmt.Print("\nInclude change? [y, n, a, q, ?] ")
-
-				var includeStr string
-				_, _ = fmt.Scanln(&includeStr)
-				includeStr = strings.ToLower(includeStr)
-
-				// we invert the logic of what
-				// we're asking the user because
-				// we want 'right' to look like
-				// the new commit (but everything
-				// is already in right)
-
-				switch includeStr {
-				case "y", "yes":
-					// skip commit
-					fmt.Println()
-					continue changesLoop
-				case "n", "no":
-					if !emittedCurrentFile {
-						emittedCurrentFile = true
-						if !yield(currentFile) {
-							return
-						}
-					}
-					if !yield(t) {
-						return
-					}
-					fmt.Println()
-					continue changesLoop
-				case "q", "quit":
-					didQuit = true
-					if !emittedCurrentFile {
-						emittedCurrentFile = true
-						if !yield(currentFile) {
-							return
-						}
-					}
-					if !yield(t) {
-						return
-					}
-					continue changesLoop
-				case "a", "abort":
-					*outErr = fmt.Errorf("aborted")
-					return
-				case "?":
-					printHelp()
-					continue promptLoop
-				default:
-					fmt.Println("unknown command")
-					continue promptLoop
-				}
+			if !yield(f) {
+				return
 			}
 		}
 	}

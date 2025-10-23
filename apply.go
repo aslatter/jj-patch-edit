@@ -12,7 +12,7 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
-func apply(rightPath string, tokens iter.Seq[token]) (retErr error) {
+func apply(rightPath string, files iter.Seq[*file]) (retErr error) {
 	cmd := exec.Command("git",
 		"apply",
 		"--",
@@ -38,15 +38,8 @@ func apply(rightPath string, tokens iter.Seq[token]) (retErr error) {
 		return cmd.Wait()
 	})
 	wg.Go(func() error {
-		for t := range tokens {
-			for _, ln := range t.body {
-				_, err := fmt.Fprintln(inWriter, string(ln))
-				if err != nil {
-					return err
-				}
-			}
-		}
-		return inWriter.Close()
+		defer inWriter.Close()
+		return printFiles(inWriter, files)
 	})
 
 	err = wg.Wait()
@@ -54,12 +47,11 @@ func apply(rightPath string, tokens iter.Seq[token]) (retErr error) {
 	return err
 }
 
-func fakeApply(tokens iter.Seq[token]) (retErr error) {
+func fakeApply(files iter.Seq[*file]) (retErr error) {
 	var buff bytes.Buffer
-	for t := range tokens {
-		for _, ln := range t.body {
-			fmt.Fprintln(&buff, string(ln))
-		}
+	err := printFiles(&buff, files)
+	if err != nil {
+		return err
 	}
 	fmt.Println("-- COLLECTED PATCH --")
 	io.Copy(os.Stdout, &buff)
