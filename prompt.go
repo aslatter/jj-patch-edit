@@ -3,10 +3,11 @@ package main
 import (
 	"fmt"
 	"iter"
+	"slices"
 	"strings"
 )
 
-func promptUser(files iter.Seq[*file]) iter.Seq[*file] {
+func promptUser(files iter.Seq[*file], outErr *error) iter.Seq[*file] {
 	return func(yield func(*file) bool) {
 
 		var didQuit bool
@@ -21,14 +22,14 @@ func promptUser(files iter.Seq[*file]) iter.Seq[*file] {
 			printFileHeader(f)
 
 		hunkLoop:
-			for i := range f.hunks {
+			for i := 0; i < len(f.hunks); i++ {
 				h := &f.hunks[i]
 
 				printHunk(h)
 
 			promptLoop:
 				for {
-					fmt.Print("\nInclude change? [y, n, a, d, q, ?] ")
+					fmt.Print("\nInclude change? [y, n, s, a, d, q, ?] ")
 
 					var includeStr string
 					_, _ = fmt.Scanln(&includeStr)
@@ -41,6 +42,24 @@ func promptUser(files iter.Seq[*file]) iter.Seq[*file] {
 
 					case "n":
 						break promptLoop
+
+					case "s":
+						newHunks, err := splitHunk(h)
+						if err != nil {
+							outErr = &err
+							return
+						}
+						if len(newHunks) > 1 {
+							// swap in new hunks for the old one
+							f.hunks = slices.Replace(f.hunks, i, i+1, newHunks...)
+							// we may have a new backing-slice, so our old pointer
+							// may be bad.
+							h := &f.hunks[i]
+							// the old printout has been split up, so re-print the
+							// current hunk
+							printHunk(h)
+							continue promptLoop
+						}
 
 					case "q", "quit":
 						// quiting is hard, because we need to include
@@ -79,6 +98,7 @@ func printHelp() {
 
  y - include this change
  n - do not include this change
+ s - split changes
  q - do not include any remaining changes
  a - include this change and all remaining changes in this file
  d - do not include this change or any remaining changes in this file
