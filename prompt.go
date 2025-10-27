@@ -54,7 +54,7 @@ func promptUser(files iter.Seq[*file], outErr *error) iter.Seq[*file] {
 							f.hunks = slices.Replace(f.hunks, i, i+1, newHunks...)
 							// we may have a new backing-slice, so our old pointer
 							// may be bad.
-							h := &f.hunks[i]
+							h = &f.hunks[i]
 							// the old printout has been split up, so re-print the
 							// current hunk
 							printHunk(h)
