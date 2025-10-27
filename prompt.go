@@ -7,6 +7,8 @@ import (
 	"strings"
 )
 
+// promptUser asks the user what to do with every change in every patch-file,
+// annotating the hunks which they user wishes to keep.
 func promptUser(files iter.Seq[*file], outErr *error) iter.Seq[*file] {
 	return func(yield func(*file) bool) {
 

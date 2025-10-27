@@ -12,6 +12,7 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
+// apply feeds in patch-contents ('files') into 'git-apply'
 func apply(rightPath string, files iter.Seq[*file]) (retErr error) {
 	cmd := exec.Command("git",
 		"apply",

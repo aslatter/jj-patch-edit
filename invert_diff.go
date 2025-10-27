@@ -5,13 +5,16 @@ import (
 	"iter"
 )
 
+// invertDiff inverts the effect of every selected patch-file and hunk.
+//
+// file-deletions become file-creation, and we swap '+' and '-' signs
+// in the changes themselves.
+//
+// We have to swap the effect of every patch because we ask the user what
+// changes to select by presenting a diff between left and right, but then
+// we effect the change by editing *right* in-place (wheras the raw diffs
+// would apply cleanly to left).
 func invertDiff(files iter.Seq[*file]) iter.Seq[*file] {
-	// we show the user the diff between left and right,
-	// but we actually need to *remove* changes from right
-	// when doing a split - so we need to invert the orientation
-	// of the diffs we chose not to keep.
-	//
-	// It's a bit backwards from what I'm used to, but it works.
 	return func(yield func(*file) bool) {
 		for f := range files {
 			invertAddOrDelete(f)

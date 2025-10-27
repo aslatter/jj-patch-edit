@@ -2,6 +2,10 @@ package main
 
 import "errors"
 
+// splitHunk implements the "split" operation during hunk-selection.
+// It breaks up a large change into smaller changes. Not every hunk
+// can be split - an un-splittable hunk will return the same change
+// in the returned slice of hunks.
 func splitHunk(h *hunk) ([]hunk, error) {
 	var newHunks []hunk
 	// find spans of at least two non-change-lines

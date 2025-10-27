@@ -12,12 +12,14 @@ const (
 	cyan  = "\033[36m"
 )
 
+// printFileHeader prints the header of a file in color.
 func printFileHeader(f *file) {
 	for _, ln := range f.header {
 		fmt.Println(bold + string(ln) + reset)
 	}
 }
 
+// printHunk prints a colorized patch-hunk.
 func printHunk(h *hunk) {
 	fmt.Printf("%s@@ -%d,%d +%d,%d @@%s%s\n",
 		cyan,

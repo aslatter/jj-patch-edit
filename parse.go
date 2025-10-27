@@ -27,6 +27,8 @@ type hunkHeader struct {
 	bonusContent []byte
 }
 
+// parse converts a stream of tokenized diff-sections (file-headers and hunks)
+// into patch-files, with every hunk grouped under the appropriate file.
 func parse(tokens iter.Seq[token], outErr *error) iter.Seq[*file] {
 	return func(yield func(*file) bool) {
 		var currentFile *file
