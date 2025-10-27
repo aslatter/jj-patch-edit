@@ -41,6 +41,9 @@ func splitHunk(h *hunk) ([]hunk, error) {
 			var newHunk hunk
 			newHunk.header.newOffset = currentHunk.header.newOffset + currentHunk.header.newCount - 2
 			newHunk.header.oldOffset = currentHunk.header.oldOffset + currentHunk.header.oldCount - 2
+			newHunk.header.newCount = 2
+			newHunk.header.oldCount = 2
+
 			newHunk.changes = append(newHunk.changes, currentHunk.changes[len(currentHunk.changes)-2])
 			newHunk.changes = append(newHunk.changes, currentHunk.changes[len(currentHunk.changes)-1])
 
