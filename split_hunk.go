@@ -29,9 +29,7 @@ func splitHunk(h *hunk) ([]hunk, error) {
 		if !isAdd && !isRemove {
 			currentHunk.header.newCount++
 			currentHunk.header.oldCount++
-			if currentHunkHasChanges {
-				contextSpanLen++
-			}
+			contextSpanLen++
 		} else if isAdd {
 			currentHunk.header.newCount++
 			currentHunkHasChanges = true
@@ -41,20 +39,28 @@ func splitHunk(h *hunk) ([]hunk, error) {
 			currentHunkHasChanges = true
 			contextSpanLen = 0
 		}
-		if contextSpanLen == 2 {
+
+		if currentHunkHasChanges && contextSpanLen == 2 {
+			// drop the current context-line from the current hunk
+			currentHunk.changes = currentHunk.changes[:len(currentHunk.changes)-1]
+			currentHunk.header.oldCount--
+			currentHunk.header.newCount--
+
+			// start a new hunk
 			var newHunk hunk
-			newHunk.header.newOffset = currentHunk.header.newOffset + currentHunk.header.newCount - 2
-			newHunk.header.oldOffset = currentHunk.header.oldOffset + currentHunk.header.oldCount - 2
-			newHunk.header.newCount = 2
-			newHunk.header.oldCount = 2
+			newHunk.header.newOffset = currentHunk.header.newOffset + currentHunk.header.newCount
+			newHunk.header.oldOffset = currentHunk.header.oldOffset + currentHunk.header.oldCount
 
-			newHunk.changes = append(newHunk.changes, currentHunk.changes[len(currentHunk.changes)-2])
-			newHunk.changes = append(newHunk.changes, currentHunk.changes[len(currentHunk.changes)-1])
+			// add the current context-line to the new hunk
+			newHunk.changes = append(newHunk.changes, changeBytes)
+			newHunk.header.newCount++
+			newHunk.header.oldCount++
 
+			// add finished splitHunk to output
 			newHunks = append(newHunks, currentHunk)
+
 			currentHunk = newHunk
 			currentHunkHasChanges = false
-			contextSpanLen = 0
 		}
 	}
 	if currentHunkHasChanges {
