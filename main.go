@@ -42,8 +42,8 @@ func mainErr() error {
 	tokens := tokenize(lines)
 	files := parse(tokens, &parseErr)
 	files = promptUser(files, &promptErr)
-	files = filterSelectedHunks(files)
 	files = invertDiff(files)
+	files = filterSelectedHunks(files)
 
 	var applyErr error
 	if !fake {
