@@ -61,6 +61,7 @@ func splitHunk(h *hunk) ([]hunk, error) {
 
 			currentHunk = newHunk
 			currentHunkHasChanges = false
+			contextSpanLen = 1
 		}
 	}
 	if currentHunkHasChanges {
