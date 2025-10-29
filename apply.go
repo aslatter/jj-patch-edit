@@ -8,8 +8,7 @@ import (
 	"iter"
 	"os"
 	"os/exec"
-
-	"golang.org/x/sync/errgroup"
+	"sync"
 )
 
 // apply feeds in patch-contents ('files') into 'git-apply'
@@ -34,19 +33,20 @@ func apply(rightPath string, files iter.Seq[*file]) (retErr error) {
 		return err
 	}
 
-	var wg errgroup.Group
+	var printErr error
+	var wg sync.WaitGroup
 
-	wg.Go(func() error {
-		return cmd.Wait()
-	})
-	wg.Go(func() error {
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
 		defer inWriter.Close()
-		return printFiles(inWriter, files)
-	})
+		printErr = printFiles(inWriter, files)
+	}()
 
-	err = wg.Wait()
+	err = cmd.Wait()
+	wg.Wait()
 
-	return err
+	return errors.Join(err, printErr)
 }
 
 func fakeApply(files iter.Seq[*file]) (retErr error) {
