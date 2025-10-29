@@ -40,6 +40,13 @@ func splitHunk(h *hunk) ([]hunk, error) {
 			contextSpanLen = 0
 		}
 
+		// we split on two contiguous lines of context, and put one line of context
+		// in each split hunk.
+		//
+		// Ideally we would have more context in each hunk, but the patch-apply
+		// process doesn't seem to like overlapping context between hunks - so
+		//  we'd need to re-coalesce selected splits which sounds like more
+		//  trouble than I want.
 		if currentHunkHasChanges && contextSpanLen == 2 {
 			// drop the current context-line from the current hunk
 			currentHunk.changes = currentHunk.changes[:len(currentHunk.changes)-1]
