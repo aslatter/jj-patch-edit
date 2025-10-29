@@ -42,3 +42,11 @@ custom tool by default:
 
   https://jj-vcs.github.io/jj/latest/config/#editing-diffs
 
+For example:
+
+```toml
+# ~/.config/jj/config.toml
+[ui]
+diff-editor = "jj-patch-edit"
+diff-instructions = false
+```
