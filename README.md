@@ -49,4 +49,8 @@ For example:
 [ui]
 diff-editor = "jj-patch-edit"
 diff-instructions = false
+
+[merge-tools.jj-patch-edit]
+program = "/some/path/to/jj-patch-edit/bin/jj-patch-edit"
+
 ```
